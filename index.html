@@ -144,24 +144,28 @@
                     <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200 overflow-hidden flex flex-col h-[800px] ring-1 ring-slate-100">
                         <div class="p-5 border-b border-slate-100 bg-slate-50/30">
                             <div class="flex items-center justify-between mb-4">
-                                <div class="flex items-center space-x-6">
-                                    <button id="tab-page" class="font-bold text-sm text-slate-700 flex items-center gap-2 pb-1 tab-active transition-all group">
+                                <div class="flex items-center space-x-4">
+                                    <button id="tab-page" class="font-bold text-[11px] sm:text-xs text-slate-700 flex items-center gap-1.5 pb-1 tab-active transition-all group shrink-0">
                                         <i class="fas fa-copy text-indigo-600"></i>
                                         Page Feed
                                     </button>
-                                    <button id="tab-set" class="font-bold text-sm text-slate-400 flex items-center gap-2 pb-1 hover:text-slate-600 transition-all">
+                                    <button id="tab-page-summary" class="font-bold text-[11px] sm:text-xs text-slate-400 flex items-center gap-1.5 pb-1 hover:text-slate-600 transition-all shrink-0">
+                                        <i class="fas fa-list-ol"></i>
+                                        Page Summary
+                                    </button>
+                                    <button id="tab-set" class="font-bold text-[11px] sm:text-xs text-slate-400 flex items-center gap-1.5 pb-1 hover:text-slate-600 transition-all shrink-0">
                                         <i class="fas fa-layer-group"></i>
-                                        Set-wise Text
+                                        Global Set
                                     </button>
                                 </div>
                                 <div id="export-actions" class="hidden flex items-center gap-2">
-                                    <button id="copy-all-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black hover:bg-indigo-700 flex items-center gap-2 shadow-lg shadow-indigo-100 transition-all active:scale-95">
-                                        <i class="fas fa-paste"></i> COPY ALL
+                                    <button id="copy-all-btn" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-black hover:bg-indigo-700 flex items-center gap-1.5 shadow-md transition-all active:scale-95">
+                                        <i class="fas fa-paste"></i> COPY
                                     </button>
-                                    <button id="copy-json" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-50 flex items-center gap-2 shadow-sm transition-all active:scale-95">
+                                    <button id="copy-json" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-black hover:bg-slate-50 flex items-center gap-1.5 shadow-sm transition-all active:scale-95">
                                         <i class="fas fa-download text-indigo-500"></i> JSON
                                     </button>
-                                    <button id="download-csv" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-50 flex items-center gap-2 shadow-sm transition-all active:scale-95">
+                                    <button id="download-csv" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-black hover:bg-slate-50 flex items-center gap-1.5 shadow-sm transition-all active:scale-95">
                                         <i class="fas fa-file-csv text-emerald-500"></i> CSV
                                     </button>
                                 </div>
@@ -170,8 +174,11 @@
                             <div id="page-description" class="text-[11px] text-slate-500 font-medium leading-relaxed italic border-l-2 border-indigo-200 pl-3">
                                 Detailed chronological extraction of linguistic blocks, preserving original page mapping and contextual flow.
                             </div>
+                            <div id="page-summary-description" class="hidden text-[11px] text-slate-500 font-medium leading-relaxed italic border-l-2 border-amber-200 pl-3">
+                                A structured breakdown of all linguistic elements per page, providing localized context for every sentence and word identified.
+                            </div>
                             <div id="set-description" class="hidden text-[11px] text-slate-500 font-medium leading-relaxed italic border-l-2 border-emerald-200 pl-3">
-                                A synthesized master list of unique sentences and vocabulary across the entire document set, deduplicated and optimized for database injection.
+                                A synthesized master list of unique sentences and vocabulary across the entire document set, deduplicated for global indexing.
                             </div>
                         </div>
 
@@ -184,6 +191,11 @@
                                 <p class="text-2xl font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Feed Offline</p>
                                 <p class="text-sm text-slate-400 font-bold max-w-sm leading-relaxed">The database stream will activate once the PDF batch processing is complete.</p>
                             </div>
+                        </div>
+
+                        <!-- Page Summary View (Per-page structured list) -->
+                        <div id="page-summary-feed" class="hidden flex-1 overflow-y-auto scrollbar-thin p-8 space-y-10">
+                            <!-- Injected structured per-page content -->
                         </div>
 
                         <!-- Set-wise View (Aggregated Unique List) -->
@@ -209,7 +221,7 @@
         <footer class="p-12 text-center border-t border-slate-100 mt-12 bg-white flex flex-col items-center gap-3">
             <p class="text-slate-500 text-xs font-black uppercase tracking-[0.4em]">&copy; 2024 Linguistic Intelligence DB Systems</p>
             <div class="h-1 w-12 bg-indigo-100 rounded-full"></div>
-            <p class="text-slate-300 text-[10px] font-bold uppercase tracking-widest">v2.3.0-Production CJK DB Build</p>
+            <p class="text-slate-300 text-[10px] font-bold uppercase tracking-widest">v2.4.0-Production CJK DB Build</p>
         </footer>
     </div>
     <script type="module" src="index.tsx"></script>

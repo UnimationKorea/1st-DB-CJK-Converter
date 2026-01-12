@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- State ---
     let currentFile: File | null = null;
     let extractionData: any = null;
-    let currentView: 'page' | 'set' = 'page';
+    let currentView: 'page' | 'page-summary' | 'set' = 'page';
 
     // --- DOM Elements ---
     const dropZone = document.getElementById('drop-zone') as HTMLDivElement;
@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingState = document.getElementById('loading-state') as HTMLDivElement;
     const resultsFeed = document.getElementById('results-feed') as HTMLDivElement;
     const setFeed = document.getElementById('set-feed') as HTMLDivElement;
+    const pageSummaryFeed = document.getElementById('page-summary-feed') as HTMLDivElement;
     const emptyState = document.getElementById('empty-state') as HTMLDivElement;
     const exportActions = document.getElementById('export-actions') as HTMLDivElement;
     const feedFooter = document.getElementById('feed-footer') as HTMLDivElement;
@@ -31,8 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const processingOverlay = document.getElementById('processing-overlay') as HTMLDivElement;
 
     const tabPage = document.getElementById('tab-page') as HTMLButtonElement;
+    const tabPageSummary = document.getElementById('tab-page-summary') as HTMLButtonElement;
     const tabSet = document.getElementById('tab-set') as HTMLButtonElement;
+    
     const pageDescription = document.getElementById('page-description') as HTMLDivElement;
+    const pageSummaryDescription = document.getElementById('page-summary-description') as HTMLDivElement;
     const setDescription = document.getElementById('set-description') as HTMLDivElement;
 
     const copyAllBtn = document.getElementById('copy-all-btn') as HTMLButtonElement;
@@ -84,37 +88,44 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsFeed.innerHTML = '';
         resultsFeed.appendChild(emptyState);
         setFeed.innerHTML = '';
+        pageSummaryFeed.innerHTML = '';
+        
         setFeed.classList.add('hidden');
+        pageSummaryFeed.classList.add('hidden');
         resultsFeed.classList.remove('hidden');
         
         switchTab('page');
     };
 
     // --- Tab Management ---
-    const switchTab = (view: 'page' | 'set') => {
+    const switchTab = (view: 'page' | 'page-summary' | 'set') => {
         currentView = view;
+        
+        // Reset all tabs
+        [tabPage, tabPageSummary, tabSet].forEach(t => t.classList.remove('tab-active', 'text-slate-700'));
+        [tabPage, tabPageSummary, tabSet].forEach(t => t.classList.add('text-slate-400'));
+        [resultsFeed, pageSummaryFeed, setFeed, pageDescription, pageSummaryDescription, setDescription].forEach(el => el.classList.add('hidden'));
+
         if (view === 'page') {
             tabPage.classList.add('tab-active', 'text-slate-700');
             tabPage.classList.remove('text-slate-400');
-            tabSet.classList.remove('tab-active', 'text-slate-700');
-            tabSet.classList.add('text-slate-400');
             resultsFeed.classList.remove('hidden');
-            setFeed.classList.add('hidden');
             pageDescription.classList.remove('hidden');
-            setDescription.classList.add('hidden');
+        } else if (view === 'page-summary') {
+            tabPageSummary.classList.add('tab-active', 'text-slate-700');
+            tabPageSummary.classList.remove('text-slate-400');
+            pageSummaryFeed.classList.remove('hidden');
+            pageSummaryDescription.classList.remove('hidden');
         } else {
             tabSet.classList.add('tab-active', 'text-slate-700');
             tabSet.classList.remove('text-slate-400');
-            tabPage.classList.remove('tab-active', 'text-slate-700');
-            tabPage.classList.add('text-slate-400');
             setFeed.classList.remove('hidden');
-            resultsFeed.classList.add('hidden');
             setDescription.classList.remove('hidden');
-            pageDescription.classList.add('hidden');
         }
     };
 
     tabPage.onclick = () => switchTab('page');
+    tabPageSummary.onclick = () => switchTab('page-summary');
     tabSet.onclick = () => switchTab('set');
 
     // --- API & Processing ---
@@ -148,10 +159,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 - For 'ja': provide Furigana.
                 - For 'ko' (Hanja): provide Hangeul.
 
-                Task 2: Aggregated Set View
+                Task 2: Page Summary View
+                - For EACH individual page, list all sentences and vocabulary found on that specific page.
+                - Do not worry about duplicates between different pages here, but list them clearly by page.
+
+                Task 3: Aggregated Global Set View
                 - Create a master inventory of ALL unique sentences and vocabulary found across ALL pages.
-                - Remove ALL duplicates. Every word and sentence must be unique.
-                - Ensure NO data is missing.
+                - Remove ALL duplicates for this section. Every word and sentence must be unique.
                 - Categorize them into "sentences" and "vocabulary".
 
                 Return everything in the specified JSON structure.
@@ -186,6 +200,18 @@ document.addEventListener('DOMContentLoaded', () => {
                                     required: ["id", "original", "reading", "language", "type", "confidence"]
                                 }
                             },
+                            pageSummaries: {
+                                type: Type.ARRAY,
+                                items: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        page: { type: Type.INTEGER },
+                                        sentences: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                        vocabulary: { type: Type.ARRAY, items: { type: Type.STRING } }
+                                    },
+                                    required: ["page", "sentences", "vocabulary"]
+                                }
+                            },
                             aggregatedSet: {
                                 type: Type.OBJECT,
                                 properties: {
@@ -208,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = JSON.parse(response.text);
             extractionData = data;
             renderResults(data);
+            renderPageSummary(data);
             renderSetView(data);
         } catch (err: any) {
             showError(err.message || 'Analysis failed. The PDF might be too large or encrypted.');
@@ -243,6 +270,46 @@ document.addEventListener('DOMContentLoaded', () => {
         feedFooter.classList.remove('hidden');
     };
 
+    const renderPageSummary = (data: any) => {
+        pageSummaryFeed.innerHTML = '';
+        const summaries = data.pageSummaries || [];
+        
+        summaries.forEach((pSum: any) => {
+            const pageContainer = document.createElement('div');
+            pageContainer.className = 'bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm';
+            
+            pageContainer.innerHTML = `
+                <div class="bg-slate-900 px-6 py-4 flex items-center justify-between">
+                    <h3 class="text-white font-black text-xs uppercase tracking-widest">Page ${pSum.page} Breakdown</h3>
+                    <div class="text-[10px] text-slate-400 font-mono">COUNT: ${pSum.sentences.length + pSum.vocabulary.length}</div>
+                </div>
+                <div class="p-6 space-y-8">
+                    <div class="space-y-4">
+                        <p class="text-[10px] font-black text-amber-500 uppercase flex items-center gap-2 tracking-tighter">
+                            <i class="fas fa-quote-right"></i> Sentences
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            ${pSum.sentences.map((s: string) => `
+                                <div class="bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 text-sm font-medium text-amber-900 shadow-sm">${s}</div>
+                            `).join('') || '<span class="text-slate-300 italic text-xs">No sentences found.</span>'}
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <p class="text-[10px] font-black text-indigo-500 uppercase flex items-center gap-2 tracking-tighter">
+                            <i class="fas fa-spell-check"></i> Vocabulary
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            ${pSum.vocabulary.map((v: string) => `
+                                <div class="bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 text-sm font-medium text-indigo-900 shadow-sm">${v}</div>
+                            `).join('') || '<span class="text-slate-300 italic text-xs">No vocabulary found.</span>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+            pageSummaryFeed.appendChild(pageContainer);
+        });
+    };
+
     const renderSetView = (data: any) => {
         setFeed.innerHTML = '';
         const set = data.aggregatedSet;
@@ -265,8 +332,8 @@ document.addEventListener('DOMContentLoaded', () => {
             setFeed.appendChild(section);
         };
 
-        if (set.sentences.length > 0) createSection('Unique Sentences Set', set.sentences, 'fa-quote-left');
-        if (set.vocabulary.length > 0) createSection('Unique Vocabulary Set', set.vocabulary, 'fa-spell-check');
+        if (set.sentences.length > 0) createSection('Global Unique Sentences', set.sentences, 'fa-quote-left');
+        if (set.vocabulary.length > 0) createSection('Global Unique Vocabulary', set.vocabulary, 'fa-spell-check');
     };
 
     const toggleLoading = (isLoading: boolean) => {
@@ -290,10 +357,14 @@ document.addEventListener('DOMContentLoaded', () => {
             textToCopy = extractionData.results.map((r: any) => 
                 `[Page ${r.page || 1}] ${r.original} (${r.reading || 'N/A'})`
             ).join('\n');
+        } else if (currentView === 'page-summary') {
+            textToCopy = extractionData.pageSummaries.map((pSum: any) => 
+                `=== PAGE ${pSum.page} ===\nSentences:\n${pSum.sentences.join('\n')}\nVocabulary:\n${pSum.vocabulary.join('\n')}`
+            ).join('\n\n');
         } else {
-            textToCopy = "=== UNIQUE SENTENCES ===\n" + 
+            textToCopy = "=== GLOBAL UNIQUE SENTENCES ===\n" + 
                 extractionData.aggregatedSet.sentences.join('\n') + 
-                "\n\n=== UNIQUE VOCABULARY ===\n" + 
+                "\n\n=== GLOBAL UNIQUE VOCABULARY ===\n" + 
                 extractionData.aggregatedSet.vocabulary.join('\n');
         }
 
@@ -331,13 +402,13 @@ document.addEventListener('DOMContentLoaded', () => {
             r.confidence
         ]);
         
-        // Add a separator for the set view
+        // Add summary info
         rows.push(['---', '---', '---', '---', '---', '---']);
-        rows.push(['SET_SUMMARY', 'Unique Sentences', extractionData.aggregatedSet.sentences.length, '', '', '']);
-        extractionData.aggregatedSet.sentences.forEach((s: string) => rows.push(['SET_DATA', 'Sentence', `"${s.replace(/"/g, '""')}"`, '', '', '']));
+        rows.push(['GLOBAL_SET', 'Sentences', extractionData.aggregatedSet.sentences.length, '', '', '']);
+        extractionData.aggregatedSet.sentences.forEach((s: string) => rows.push(['GLOBAL_DATA', 'Sentence', `"${s.replace(/"/g, '""')}"`, '', '', '']));
         
-        rows.push(['SET_SUMMARY', 'Unique Vocabulary', extractionData.aggregatedSet.vocabulary.length, '', '', '']);
-        extractionData.aggregatedSet.vocabulary.forEach((v: string) => rows.push(['SET_DATA', 'Word', `"${v.replace(/"/g, '""')}"`, '', '', '']));
+        rows.push(['GLOBAL_SET', 'Vocabulary', extractionData.aggregatedSet.vocabulary.length, '', '', '']);
+        extractionData.aggregatedSet.vocabulary.forEach((v: string) => rows.push(['GLOBAL_DATA', 'Word', `"${v.replace(/"/g, '""')}"`, '', '', '']));
 
         const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
         const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
