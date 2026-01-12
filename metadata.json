@@ -1,0 +1,7 @@
+{
+  "description": "Professional CJK PDF/Image OCR Converter for Database Construction.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "name": "App"
+}
