@@ -151,7 +151,7 @@
                                     </button>
                                     <button id="tab-page-summary" class="font-bold text-[11px] sm:text-xs text-slate-400 flex items-center gap-1.5 pb-1 hover:text-slate-600 transition-all shrink-0">
                                         <i class="fas fa-list-ol"></i>
-                                        Page Summary
+                                        Page Inventory
                                     </button>
                                     <button id="tab-set" class="font-bold text-[11px] sm:text-xs text-slate-400 flex items-center gap-1.5 pb-1 hover:text-slate-600 transition-all shrink-0">
                                         <i class="fas fa-layer-group"></i>
@@ -165,20 +165,20 @@
                                     <button id="copy-json" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-black hover:bg-slate-50 flex items-center gap-1.5 shadow-sm transition-all active:scale-95">
                                         <i class="fas fa-download text-indigo-500"></i> JSON
                                     </button>
-                                    <button id="download-csv" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-black hover:bg-slate-50 flex items-center gap-1.5 shadow-sm transition-all active:scale-95">
-                                        <i class="fas fa-file-csv text-emerald-500"></i> CSV
+                                    <button id="download-csv" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-black hover:bg-slate-50 flex items-center gap-1.5 shadow-sm transition-all active:scale-95 ring-2 ring-emerald-500/20">
+                                        <i class="fas fa-file-csv text-emerald-500"></i> ARCHITECT CSV
                                     </button>
                                 </div>
                             </div>
                             <!-- View Descriptions (English) -->
                             <div id="page-description" class="text-[11px] text-slate-500 font-medium leading-relaxed italic border-l-2 border-indigo-200 pl-3">
-                                Detailed chronological extraction of linguistic blocks, preserving original page mapping and contextual flow.
+                                Detailed chronological extraction with integrated Korean translation for DB Architect.
                             </div>
                             <div id="page-summary-description" class="hidden text-[11px] text-slate-500 font-medium leading-relaxed italic border-l-2 border-amber-200 pl-3">
-                                A structured breakdown of all linguistic elements per page, providing localized context for every sentence and word identified.
+                                A lossless inventory including text, pinyin, and translation for every element on each page.
                             </div>
                             <div id="set-description" class="hidden text-[11px] text-slate-500 font-medium leading-relaxed italic border-l-2 border-emerald-200 pl-3">
-                                A synthesized master list of unique sentences and vocabulary across the entire document set, deduplicated for global indexing.
+                                Global master list of unique sentences and vocabulary items.
                             </div>
                         </div>
 
@@ -206,11 +206,11 @@
                         <div id="feed-footer" class="hidden p-5 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-400 font-mono">
                             <div class="flex gap-8">
                                 <span>TOTAL_EXTRACTIONS: <strong id="summary-count" class="text-emerald-400 text-sm">0</strong></span>
-                                <span class="hidden md:flex items-center gap-3 uppercase">SET_INTEGRITY: <strong class="text-indigo-400">BATCH_COMPLETE</strong></span>
+                                <span class="hidden md:flex items-center gap-3 uppercase">FORMAT: <strong class="text-indigo-400">ARCHITECT_READY</strong></span>
                             </div>
                             <div class="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20 font-black">
                                 <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.8)]"></span>
-                                DB_READY_SET
+                                DB_READY
                             </div>
                         </div>
                     </div>
@@ -221,7 +221,7 @@
         <footer class="p-12 text-center border-t border-slate-100 mt-12 bg-white flex flex-col items-center gap-3">
             <p class="text-slate-500 text-xs font-black uppercase tracking-[0.4em]">&copy; 2024 Linguistic Intelligence DB Systems</p>
             <div class="h-1 w-12 bg-indigo-100 rounded-full"></div>
-            <p class="text-slate-300 text-[10px] font-bold uppercase tracking-widest">v2.4.0-Production CJK DB Build</p>
+            <p class="text-slate-300 text-[10px] font-bold uppercase tracking-widest">v3.0.0-Architect Edition</p>
         </footer>
     </div>
     <script type="module" src="index.tsx"></script>

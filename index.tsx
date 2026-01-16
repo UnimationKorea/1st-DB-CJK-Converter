@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const feedFooter = document.getElementById('feed-footer') as HTMLDivElement;
     const errorBox = document.getElementById('error-box') as HTMLDivElement;
     const errorMessage = document.getElementById('error-message') as HTMLParagraphElement;
-    const statusBadge = document.getElementById('status-badge') as HTMLDivElement;
     const summaryCount = document.getElementById('summary-count') as HTMLElement;
     const processingOverlay = document.getElementById('processing-overlay') as HTMLDivElement;
 
@@ -97,11 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
         switchTab('page');
     };
 
-    // --- Tab Management ---
     const switchTab = (view: 'page' | 'page-summary' | 'set') => {
         currentView = view;
-        
-        // Reset all tabs
         [tabPage, tabPageSummary, tabSet].forEach(t => t.classList.remove('tab-active', 'text-slate-700'));
         [tabPage, tabPageSummary, tabSet].forEach(t => t.classList.add('text-slate-400'));
         [resultsFeed, pageSummaryFeed, setFeed, pageDescription, pageSummaryDescription, setDescription].forEach(el => el.classList.add('hidden'));
@@ -128,7 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
     tabPageSummary.onclick = () => switchTab('page-summary');
     tabSet.onclick = () => switchTab('set');
 
-    // --- API & Processing ---
     const blobToBase64 = (blob: Blob): Promise<string> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -140,7 +135,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const processOCR = async () => {
         if (!currentFile || !process.env.API_KEY) return;
-
         toggleLoading(true);
         errorBox.classList.add('hidden');
 
@@ -149,26 +143,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const base64Data = await blobToBase64(currentFile);
 
             const prompt = `
-                You are a high-precision CJK Linguistic Pipeline. 
-                Analyze this entire document (Set).
+                You are a world-class CJK Linguistic Data Engineer for the "eduresource DB architect" system. 
+                Extract EVERY bit of text with 100% precision. 
+                
+                For EVERY linguistic block, you MUST provide:
+                1. 'original': The source text (CJK).
+                2. 'reading': The pinyin/furigana/hangeul.
+                3. 'translation': A high-quality Korean translation of the text.
 
-                Task 1: Page-by-page OCR
-                - Extract ALL linguistic blocks from every page.
-                - Detect language: 'zh', 'ja', 'ko'.
-                - For 'zh': provide Pinyin.
-                - For 'ja': provide Furigana.
-                - For 'ko' (Hanja): provide Hangeul.
+                Task 1: Raw Page-by-page OCR
+                - Extract ALL blocks. Do not skip any Hangeul or Hanja sentences.
+                - Translate every single sentence and word into Korean accurately.
 
-                Task 2: Page Summary View
-                - For EACH individual page, list all sentences and vocabulary found on that specific page.
-                - Do not worry about duplicates between different pages here, but list them clearly by page.
+                Task 2: Exhaustive Page Inventory
+                - Provide full categorical list of all sentences and words per page.
 
-                Task 3: Aggregated Global Set View
-                - Create a master inventory of ALL unique sentences and vocabulary found across ALL pages.
-                - Remove ALL duplicates for this section. Every word and sentence must be unique.
-                - Categorize them into "sentences" and "vocabulary".
+                Task 3: Global Unique Set
+                - Master inventory of unique items.
 
-                Return everything in the specified JSON structure.
+                Output MUST be valid JSON.
             `;
 
             const response = await ai.models.generateContent({
@@ -192,12 +185,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                         id: { type: Type.STRING },
                                         original: { type: Type.STRING },
                                         reading: { type: Type.STRING },
+                                        translation: { type: Type.STRING },
                                         language: { type: Type.STRING },
                                         type: { type: Type.STRING },
                                         page: { type: Type.INTEGER },
                                         confidence: { type: Type.NUMBER }
                                     },
-                                    required: ["id", "original", "reading", "language", "type", "confidence"]
+                                    required: ["id", "original", "reading", "translation", "language", "type", "confidence"]
                                 }
                             },
                             pageSummaries: {
@@ -206,8 +200,28 @@ document.addEventListener('DOMContentLoaded', () => {
                                     type: Type.OBJECT,
                                     properties: {
                                         page: { type: Type.INTEGER },
-                                        sentences: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                        vocabulary: { type: Type.ARRAY, items: { type: Type.STRING } }
+                                        sentences: { 
+                                            type: Type.ARRAY, 
+                                            items: { 
+                                                type: Type.OBJECT,
+                                                properties: {
+                                                    text: { type: Type.STRING },
+                                                    reading: { type: Type.STRING },
+                                                    translation: { type: Type.STRING }
+                                                }
+                                            } 
+                                        },
+                                        vocabulary: { 
+                                            type: Type.ARRAY, 
+                                            items: { 
+                                                type: Type.OBJECT,
+                                                properties: {
+                                                    text: { type: Type.STRING },
+                                                    reading: { type: Type.STRING },
+                                                    translation: { type: Type.STRING }
+                                                }
+                                            } 
+                                        }
                                     },
                                     required: ["page", "sentences", "vocabulary"]
                                 }
@@ -237,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPageSummary(data);
             renderSetView(data);
         } catch (err: any) {
-            showError(err.message || 'Analysis failed. The PDF might be too large or encrypted.');
+            showError(err.message || 'Analysis failed. Please check the PDF quality.');
         } finally {
             toggleLoading(false);
         }
@@ -245,11 +259,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderResults = (data: any) => {
         resultsFeed.innerHTML = '';
-        data.results.forEach((item: any, idx: number) => {
+        data.results.forEach((item: any) => {
             const card = document.createElement('div');
             card.className = 'p-8 hover:bg-slate-50 border-b border-slate-100 transition-all border-l-4 border-l-transparent hover:border-l-indigo-500';
             const langClass = item.language === 'zh' ? 'bg-amber-50 text-amber-700' : item.language === 'ja' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700';
-            
             card.innerHTML = `
                 <div class="flex items-start gap-6">
                     <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-[10px] font-black text-white">P${item.page || 1}</div>
@@ -259,7 +272,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span class="text-[9px] font-mono text-slate-400">CONFIDENCE: ${Math.round(item.confidence * 100)}%</span>
                         </div>
                         <p class="text-3xl serif-text text-slate-900 leading-tight">${item.original}</p>
-                        <div class="text-lg font-medium text-slate-500 italic bg-slate-50 p-3 rounded-xl border border-slate-100">${item.reading}</div>
+                        <div class="text-base font-medium text-slate-400 italic bg-slate-50 p-2 rounded-lg border border-slate-100">${item.reading}</div>
+                        <div class="text-lg font-bold text-indigo-700 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100/50">
+                            <i class="fas fa-language mr-2 opacity-50"></i>${item.translation}
+                        </div>
                     </div>
                 </div>
             `;
@@ -273,35 +289,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderPageSummary = (data: any) => {
         pageSummaryFeed.innerHTML = '';
         const summaries = data.pageSummaries || [];
-        
         summaries.forEach((pSum: any) => {
             const pageContainer = document.createElement('div');
             pageContainer.className = 'bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm';
-            
             pageContainer.innerHTML = `
                 <div class="bg-slate-900 px-6 py-4 flex items-center justify-between">
-                    <h3 class="text-white font-black text-xs uppercase tracking-widest">Page ${pSum.page} Breakdown</h3>
-                    <div class="text-[10px] text-slate-400 font-mono">COUNT: ${pSum.sentences.length + pSum.vocabulary.length}</div>
+                    <h3 class="text-white font-black text-xs uppercase tracking-widest">Page ${pSum.page} Full Inventory</h3>
                 </div>
                 <div class="p-6 space-y-8">
                     <div class="space-y-4">
                         <p class="text-[10px] font-black text-amber-500 uppercase flex items-center gap-2 tracking-tighter">
                             <i class="fas fa-quote-right"></i> Sentences
                         </p>
-                        <div class="flex flex-wrap gap-2">
-                            ${pSum.sentences.map((s: string) => `
-                                <div class="bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 text-sm font-medium text-amber-900 shadow-sm">${s}</div>
-                            `).join('') || '<span class="text-slate-300 italic text-xs">No sentences found.</span>'}
+                        <div class="space-y-3">
+                            ${pSum.sentences.map((s: any) => `
+                                <div class="bg-amber-50/50 p-4 rounded-2xl border border-amber-100 shadow-sm">
+                                    <p class="serif-text text-xl text-slate-800 mb-1">${s.text}</p>
+                                    <p class="text-xs text-slate-400 mb-2">${s.reading}</p>
+                                    <p class="text-sm font-bold text-amber-700">${s.translation}</p>
+                                </div>
+                            `).join('') || '<span class="text-slate-300 italic text-xs">No sentences.</span>'}
                         </div>
                     </div>
                     <div class="space-y-4">
                         <p class="text-[10px] font-black text-indigo-500 uppercase flex items-center gap-2 tracking-tighter">
                             <i class="fas fa-spell-check"></i> Vocabulary
                         </p>
-                        <div class="flex flex-wrap gap-2">
-                            ${pSum.vocabulary.map((v: string) => `
-                                <div class="bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 text-sm font-medium text-indigo-900 shadow-sm">${v}</div>
-                            `).join('') || '<span class="text-slate-300 italic text-xs">No vocabulary found.</span>'}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            ${pSum.vocabulary.map((v: any) => `
+                                <div class="bg-indigo-50/30 p-3 rounded-xl border border-indigo-100 flex flex-col">
+                                    <div class="flex justify-between items-baseline mb-1">
+                                        <span class="text-lg serif-text">${v.text}</span>
+                                        <span class="text-[10px] text-slate-400">${v.reading}</span>
+                                    </div>
+                                    <span class="text-xs font-bold text-indigo-600">${v.translation}</span>
+                                </div>
+                            `).join('') || '<span class="text-slate-300 italic text-xs">No vocabulary.</span>'}
                         </div>
                     </div>
                 </div>
@@ -313,7 +336,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderSetView = (data: any) => {
         setFeed.innerHTML = '';
         const set = data.aggregatedSet;
-
         const createSection = (title: string, items: string[], icon: string) => {
             const section = document.createElement('div');
             section.className = 'space-y-4 mb-8';
@@ -331,7 +353,6 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             setFeed.appendChild(section);
         };
-
         if (set.sentences.length > 0) createSection('Global Unique Sentences', set.sentences, 'fa-quote-left');
         if (set.vocabulary.length > 0) createSection('Global Unique Vocabulary', set.vocabulary, 'fa-spell-check');
     };
@@ -348,26 +369,16 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleLoading(false);
     };
 
-    // --- Export Functionality ---
     copyAllBtn.onclick = () => {
         if (!extractionData) return;
         let textToCopy = "";
-        
         if (currentView === 'page') {
-            textToCopy = extractionData.results.map((r: any) => 
-                `[Page ${r.page || 1}] ${r.original} (${r.reading || 'N/A'})`
-            ).join('\n');
+            textToCopy = extractionData.results.map((r: any) => `[${r.original}] | ${r.reading} | ${r.translation}`).join('\n');
         } else if (currentView === 'page-summary') {
-            textToCopy = extractionData.pageSummaries.map((pSum: any) => 
-                `=== PAGE ${pSum.page} ===\nSentences:\n${pSum.sentences.join('\n')}\nVocabulary:\n${pSum.vocabulary.join('\n')}`
-            ).join('\n\n');
+            textToCopy = extractionData.pageSummaries.map((pSum: any) => `=== PAGE ${pSum.page} ===\n${pSum.sentences.map((s:any)=>`${s.text} (${s.translation})`).join('\n')}`).join('\n\n');
         } else {
-            textToCopy = "=== GLOBAL UNIQUE SENTENCES ===\n" + 
-                extractionData.aggregatedSet.sentences.join('\n') + 
-                "\n\n=== GLOBAL UNIQUE VOCABULARY ===\n" + 
-                extractionData.aggregatedSet.vocabulary.join('\n');
+            textToCopy = "=== GLOBAL UNIQUE SENTENCES ===\n" + extractionData.aggregatedSet.sentences.join('\n');
         }
-
         navigator.clipboard.writeText(textToCopy).then(() => {
             const originalText = copyAllBtn.innerHTML;
             copyAllBtn.innerHTML = '<i class="fas fa-check"></i> COPIED!';
@@ -392,45 +403,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     downloadCsvBtn.onclick = () => {
         if (!extractionData) return;
-        const headers = ['Page', 'Type', 'Original', 'Reading', 'Language', 'Confidence'];
+        
+        // Architect App Standard Headers
+        const headers = ['text', 'pinyin', 'translation'];
+        
+        // Data Rows - Focusing only on the core linguistic info
         const rows = extractionData.results.map((r: any) => [
-            r.page || 1,
-            r.type,
             `"${r.original.replace(/"/g, '""')}"`,
-            `"${(r.reading || '').replace(/"/g, '""')}"`,
-            r.language,
-            r.confidence
+            `"${r.reading.replace(/"/g, '""')}"`,
+            `"${r.translation.replace(/"/g, '""')}"`
         ]);
-        
-        // Add summary info
-        rows.push(['---', '---', '---', '---', '---', '---']);
-        rows.push(['GLOBAL_SET', 'Sentences', extractionData.aggregatedSet.sentences.length, '', '', '']);
-        extractionData.aggregatedSet.sentences.forEach((s: string) => rows.push(['GLOBAL_DATA', 'Sentence', `"${s.replace(/"/g, '""')}"`, '', '', '']));
-        
-        rows.push(['GLOBAL_SET', 'Vocabulary', extractionData.aggregatedSet.vocabulary.length, '', '', '']);
-        extractionData.aggregatedSet.vocabulary.forEach((v: string) => rows.push(['GLOBAL_DATA', 'Word', `"${v.replace(/"/g, '""')}"`, '', '', '']));
 
         const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
         const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `cjk_db_ready_${Date.now()}.csv`;
+        link.download = `architect_ready_db_${Date.now()}.csv`;
         link.click();
         URL.revokeObjectURL(url);
     };
 
-    // --- Events ---
     dropZone.onclick = () => fileInput.click();
     fileInput.onchange = (e: any) => handleFile(e.target.files[0]);
     dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('active'); };
     dropZone.ondragleave = () => dropZone.classList.remove('active');
-    dropZone.ondrop = (e: any) => { 
-        e.preventDefault(); 
-        dropZone.classList.remove('active'); 
-        handleFile(e.dataTransfer.files[0]); 
-    };
-
+    dropZone.ondrop = (e: any) => { e.preventDefault(); dropZone.classList.remove('active'); handleFile(e.dataTransfer.files[0]); };
     extractBtn.onclick = processOCR;
     resetBtn.onclick = softReset;
 });
